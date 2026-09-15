@@ -719,6 +719,29 @@ h3 {
 .description {
   line-height: 1.65;
   color: #cdd6e8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.download-btn {
+  margin-top: 16px;
+  background: rgba(91, 157, 255, 0.12);
+  border: 1px solid rgba(91, 157, 255, 0.4);
+  color: var(--blue);
+  padding: 11px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.15s ease;
+}
+
+.download-btn:hover {
+  background: rgba(91, 157, 255, 0.2);
+}
+
+.download-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .lab-info {

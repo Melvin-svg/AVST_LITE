@@ -2,7 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
-from .routers import auth_router, challenges_router, cve_router, hints_router, leaderboard_router
+from .routers import (
+    auth_router,
+    challenges_router,
+    cve_router,
+    downloads_router,
+    hints_router,
+    leaderboard_router,
+)
 from .seed import seed
 
 Base.metadata.create_all(bind=engine)
@@ -19,6 +26,7 @@ app.add_middleware(
 
 app.include_router(auth_router.router)
 app.include_router(challenges_router.router)
+app.include_router(downloads_router.router)
 app.include_router(hints_router.router)
 app.include_router(cve_router.router)
 app.include_router(leaderboard_router.router)

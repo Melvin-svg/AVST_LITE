@@ -40,6 +40,7 @@ class Challenge(Base):
     flag_format = Column(String, default="AVST{...}")
     hints = Column(Text, default="[]")  # JSON-encoded list of hint strings
     docker_lab = Column(String, nullable=True)  # key into docker labs, if any
+    download_file = Column(String, nullable=True)  # filename served from challenge_files/
 
     scores = relationship("Score", back_populates="challenge")
 

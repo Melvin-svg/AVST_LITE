@@ -40,6 +40,7 @@ class ChallengeOut(BaseModel):
     difficulty: str = "Easy"
     flag_format: str = "AVST{...}"
     docker_lab: Optional[str] = None
+    download_file: Optional[str] = None
     solved: bool = False
 
     class Config:

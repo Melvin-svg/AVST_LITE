@@ -13,6 +13,7 @@ export default function ChallengeDetail() {
   const [hintLevel, setHintLevel] = useState(1);
   const [messages, setMessages] = useState([]);
   const [asking, setAsking] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     api.challenge(token, id).then(setChallenge).catch(() => {});
@@ -24,6 +25,17 @@ export default function ChallengeDetail() {
     setSubmitResult(result);
     if (result.correct) {
       setChallenge((c) => ({ ...c, solved: true }));
+    }
+  }
+
+  async function handleDownload(filename) {
+    setDownloading(true);
+    try {
+      await api.downloadFile(token, id, filename);
+    } catch (err) {
+      setSubmitResult({ correct: false, message: `Download failed: ${err.message}` });
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -62,6 +74,16 @@ export default function ChallengeDetail() {
         <h1>{challenge.title}</h1>
         <p className="points">{challenge.points} points</p>
         <p className="description">{challenge.description}</p>
+        {challenge.download_file && (
+          <button
+            type="button"
+            className="download-btn"
+            onClick={() => handleDownload(challenge.download_file)}
+            disabled={downloading}
+          >
+            {downloading ? "Downloading..." : `⬇ Download ${challenge.download_file}`}
+          </button>
+        )}
         {challenge.docker_lab && (
           <div className="lab-info">
             Practical lab available: <code>{challenge.docker_lab}</code> (see{" "}

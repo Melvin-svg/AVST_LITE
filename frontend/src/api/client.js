@@ -29,4 +29,19 @@ export const api = {
     request(`/api/hints/${id}`, { method: "POST", body: { question, hint_level }, token }),
   cves: (token) => request("/api/cve", { token }),
   leaderboard: (token) => request("/api/leaderboard", { token }),
+  async downloadFile(token, id, filename) {
+    const res = await fetch(`${API_BASE}/api/challenges/${id}/download`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Download failed");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };

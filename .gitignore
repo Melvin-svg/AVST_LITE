@@ -6,3 +6,6 @@ node_modules/
 dist/
 .env
 .DS_Store
+
+# Challenge artifacts are regenerated from flags on backend startup
+backend/challenge_files/

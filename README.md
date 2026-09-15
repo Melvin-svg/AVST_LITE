@@ -21,7 +21,27 @@ uvicorn app.main:app --reload
 ```
 
 The API runs at `http://127.0.0.1:8000`. On first startup it auto-creates `avst_lite.db`
-(SQLite) and seeds 5 sample challenges (Web, Crypto, Forensics, Reverse Engineering).
+(SQLite), seeds 18 challenges (Web, Crypto, Forensics, Reverse Engineering across
+Easy/Medium/Hard/Insane), and generates the downloadable challenge artifacts into
+`backend/challenge_files/`.
+
+### Challenge artifacts
+
+Forensics and reverse-engineering challenges ship real files students download and solve:
+
+- **Forensics** — a stego PNG, a libpcap FTP capture, a raw disk image with a carvable
+  deleted file, and a synthetic memory dump.
+- **Reverse Engineering** — four native binaries compiled from C by the system compiler
+  (`cc`/`clang`/`gcc`) at startup: a plain crackme, a static-XOR binary, a five-stage
+  crackme, and an anti-debug fortress.
+
+Every artifact is generated from the challenge's actual flag, so a correct solution always
+matches the stored flag. The crypto challenges (Caesar, single-byte XOR, RSA/Fermat) embed
+their ciphertext directly in the challenge description, and all decode cleanly to the flag.
+Files are served (authenticated) from `GET /api/challenges/{id}/download`.
+
+> If no C compiler is available, the four RE binaries are skipped but everything else still
+> works. `backend/challenge_files/` is gitignored and rebuilt on each fresh startup.
 
 Interactive API docs: `http://127.0.0.1:8000/docs`
 
@@ -65,12 +85,17 @@ docker compose up --build
 These are intentionally vulnerable Flask apps for teaching purposes only — do not deploy
 them outside an isolated lab environment.
 
-## Default challenges
+## Challenges
 
-| Challenge | Category | Points |
-|---|---|---|
-| Login Bypass 101 | Web Security (SQLi) | 100 |
-| Reflected Alert | Web Security (XSS) | 100 |
-| Caesar's Secret | Cryptography | 75 |
-| Hidden in Plain Sight | Forensics | 90 |
-| Crack the Binary | Reverse Engineering | 120 |
+18 challenges, 4-5 per category across four difficulty tiers:
+
+| Category | Easy | Medium | Hard | Insane |
+|---|---|---|---|---|
+| Web Security | Login Bypass 101, Reflected Alert | Invoice Peeker, Forge the Token | Internal Only | Blind Faith |
+| Cryptography | Caesar's Secret | Single Byte Shield | Twin Primes | Padding Oracle Whispers |
+| Forensics | Hidden in Plain Sight | Packet Secrets | Deleted But Not Gone | Memory Lane |
+| Reverse Engineering | Crack the Binary | XOR Armor | The Maze | Anti-Debug Fortress |
+
+Every challenge shows its flag format (`AVST{...}`). Forensics/RE challenges provide a
+download button; the two SQLi/XSS web challenges use the Docker labs; the remaining web
+challenges are conceptual and walked through the AI assistant.
