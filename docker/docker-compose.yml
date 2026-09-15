@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  sqli-lab:
+    build: ./sqli-lab
+    ports:
+      - "5001:5001"
+    networks:
+      - avst-labs
+
+  xss-lab:
+    build: ./xss-lab
+    ports:
+      - "5002:5002"
+    networks:
+      - avst-labs
+
+networks:
+  avst-labs:
+    driver: bridge
