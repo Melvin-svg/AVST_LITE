@@ -13,7 +13,7 @@ from ..database import get_db
 router = APIRouter(prefix="/api/hints", tags=["hints"])
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "hf.co/unsloth/Qwen2.5-Coder-7B-Instruct-GGUF:Q4_K_M")
 
 
 def rule_based_hint(challenge: models.Challenge, hint_level: int) -> str:
@@ -40,7 +40,7 @@ async def ollama_hint(challenge: models.Challenge, question: str, hint_level: in
         "Give one short, progressive hint (2-3 sentences max)."
     )
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 OLLAMA_URL,
                 json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},

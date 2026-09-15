@@ -37,6 +37,8 @@ class ChallengeOut(BaseModel):
     category: str
     description: str
     points: int
+    difficulty: str = "Easy"
+    flag_format: str = "AVST{...}"
     docker_lab: Optional[str] = None
     solved: bool = False
 

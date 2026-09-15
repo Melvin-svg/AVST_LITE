@@ -53,7 +53,12 @@ export default function ChallengeDetail() {
   return (
     <div className="page challenge-detail">
       <div className="challenge-main">
-        <span className="category-tag">{challenge.category}</span>
+        <div className="challenge-tags">
+          <span className="category-tag">{challenge.category}</span>
+          <span className={`difficulty-badge diff-${challenge.difficulty}`}>
+            {challenge.difficulty}
+          </span>
+        </div>
         <h1>{challenge.title}</h1>
         <p className="points">{challenge.points} points</p>
         <p className="description">{challenge.description}</p>
@@ -64,9 +69,13 @@ export default function ChallengeDetail() {
           </div>
         )}
 
+        <div className="flag-format-box">
+          Flag format: <code>{challenge.flag_format}</code>
+        </div>
+
         <form className="flag-form" onSubmit={handleSubmitFlag}>
           <input
-            placeholder="AVST{...}"
+            placeholder={challenge.flag_format}
             value={flag}
             onChange={(e) => setFlag(e.target.value)}
             disabled={challenge.solved}

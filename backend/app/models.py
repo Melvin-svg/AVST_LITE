@@ -35,7 +35,9 @@ class Challenge(Base):
     category = Column(String, nullable=False)
     description = Column(Text, nullable=False)
     points = Column(Integer, default=100)
+    difficulty = Column(String, default="Easy")  # Easy, Medium, Hard, Insane
     flag_hash = Column(String, nullable=False)
+    flag_format = Column(String, default="AVST{...}")
     hints = Column(Text, default="[]")  # JSON-encoded list of hint strings
     docker_lab = Column(String, nullable=True)  # key into docker labs, if any
 

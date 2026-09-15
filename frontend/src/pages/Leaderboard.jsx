@@ -25,7 +25,9 @@ export default function Leaderboard() {
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.user_id} className={r.user_id === user?.user_id ? "me" : ""}>
-              <td>#{i + 1}</td>
+              <td>
+                {i < 3 ? <span className={`medal medal-${i}`}>#{i + 1}</span> : `#${i + 1}`}
+              </td>
               <td>{r.name}</td>
               <td>{r.solved_count}</td>
               <td>{r.total_score}</td>

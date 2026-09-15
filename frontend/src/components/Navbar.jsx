@@ -1,6 +1,13 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+
+const LINKS = [
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/challenges", label: "Challenges" },
+  { to: "/cve", label: "CVE Learning" },
+  { to: "/leaderboard", label: "Leaderboard" },
+];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -11,17 +18,27 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <Link to="/dashboard">AVST Lite</Link>
+        <NavLink to="/dashboard">
+          <span className="brand-mark">AVST</span>
+          <span className="brand-sub">Lite</span>
+        </NavLink>
       </div>
       <div className="navbar-links">
-        <Link to="/dashboard">Dashboard</Link>
-        <Link to="/challenges">Challenges</Link>
-        <Link to="/cve">CVE Learning</Link>
-        <Link to="/leaderboard">Leaderboard</Link>
+        {LINKS.map((l) => (
+          <NavLink
+            key={l.to}
+            to={l.to}
+            className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+          >
+            {l.label}
+          </NavLink>
+        ))}
       </div>
       <div className="navbar-user">
-        <span>{user.name}</span>
+        <span className="avatar">{user.name?.[0]?.toUpperCase() || "?"}</span>
+        <span className="user-name">{user.name}</span>
         <button
+          className="logout-btn"
           onClick={() => {
             logout();
             navigate("/login");
