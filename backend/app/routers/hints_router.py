@@ -17,7 +17,10 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "hf.co/unsloth/Qwen2.5-Coder-7B-In
 
 
 def rule_based_hint(challenge: models.Challenge, hint_level: int) -> str:
-    hints = json.loads(challenge.hints or "[]")
+    try:
+        hints = json.loads(challenge.hints or "[]")
+    except (json.JSONDecodeError, TypeError):
+        hints = []
     if not hints:
         return "No hints are available for this challenge yet. Re-read the description carefully."
     index = min(hint_level - 1, len(hints) - 1)

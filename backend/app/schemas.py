@@ -1,13 +1,13 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserRegister(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8)
 
 
 class UserLogin(BaseModel):
@@ -58,8 +58,8 @@ class FlagResult(BaseModel):
 
 
 class HintRequest(BaseModel):
-    question: str
-    hint_level: int = 1
+    question: str = Field(..., min_length=1, max_length=1000)
+    hint_level: int = Field(default=1, ge=1, le=3)
 
 
 class HintResponse(BaseModel):
