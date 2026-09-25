@@ -1,7 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext.jsx";
+
+const QUICK_HINTS = [
+  "What security tools should I utilize?",
+  "What is the theoretical concept behind this?",
+  "Give me a subtle nudge in the right direction.",
+  "What kind of payload structure is expected?",
+];
 
 export default function ChallengeDetail() {
   const { id } = useParams();
@@ -9,22 +16,39 @@ export default function ChallengeDetail() {
   const [challenge, setChallenge] = useState(null);
   const [flag, setFlag] = useState("");
   const [submitResult, setSubmitResult] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [question, setQuestion] = useState("");
   const [hintLevel, setHintLevel] = useState(1);
   const [messages, setMessages] = useState([]);
   const [asking, setAsking] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [copiedFormat, setCopiedFormat] = useState(false);
+
+  const chatEndRef = useRef(null);
 
   useEffect(() => {
     api.challenge(token, id).then(setChallenge).catch(() => {});
   }, [token, id]);
 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, asking]);
+
   async function handleSubmitFlag(e) {
     e.preventDefault();
-    const result = await api.submitFlag(token, id, flag);
-    setSubmitResult(result);
-    if (result.correct) {
-      setChallenge((c) => ({ ...c, solved: true }));
+    if (!flag.trim()) return;
+    setSubmitting(true);
+    setSubmitResult(null);
+    try {
+      const result = await api.submitFlag(token, id, flag.trim());
+      setSubmitResult(result);
+      if (result.correct) {
+        setChallenge((c) => ({ ...c, solved: true }));
+      }
+    } catch (err) {
+      setSubmitResult({ correct: false, message: `Submission error: ${err.message}` });
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -39,14 +63,13 @@ export default function ChallengeDetail() {
     }
   }
 
-  async function handleAskHint(e) {
-    e.preventDefault();
-    if (!question.trim()) return;
+  async function sendHintQuestion(qText) {
+    if (!qText.trim() || asking) return;
     setAsking(true);
-    const userMsg = { role: "student", text: question };
+    const userMsg = { role: "student", text: qText };
     setMessages((m) => [...m, userMsg]);
     try {
-      const res = await api.getHint(token, id, question, hintLevel);
+      const res = await api.getHint(token, id, qText, hintLevel);
       setMessages((m) => [
         ...m,
         { role: "ai", text: res.hint, source: res.source, level: res.hint_level },
@@ -60,121 +83,292 @@ export default function ChallengeDetail() {
     }
   }
 
-  if (!challenge) return <div className="page">Loading...</div>;
+  const handleCopyFormat = () => {
+    if (challenge?.flag_format) {
+      navigator.clipboard.writeText(challenge.flag_format);
+      setCopiedFormat(true);
+      setTimeout(() => setCopiedFormat(false), 2000);
+    }
+  };
+
+  if (!challenge) {
+    return (
+      <div className="page challenge-detail-loading">
+        <div className="loading-spinner"></div>
+        <p>Decoupling challenge payload & directives...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="page challenge-detail">
-      <div className="challenge-main">
-        <div className="challenge-tags">
-          <span className="category-tag">{challenge.category}</span>
-          <span className={`difficulty-badge diff-${challenge.difficulty}`}>
-            {challenge.difficulty}
-          </span>
-        </div>
-        <h1>{challenge.title}</h1>
-        <p className="points">{challenge.points} points</p>
-        <p className="description">
-          {challenge.description.split(/(https?:\/\/[^\s)]+)/g).map((part, i) =>
-            part.match(/^https?:\/\//) ? (
-              <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="challenge-link">
-                {part}
-              </a>
-            ) : (
-              part
-            )
-          )}
-        </p>
-        {challenge.download_file && (
-          <button
-            type="button"
-            className="download-btn"
-            onClick={() => handleDownload(challenge.download_file)}
-            disabled={downloading}
-          >
-            {downloading ? "Downloading..." : `⬇ Download ${challenge.download_file}`}
-          </button>
-        )}
-        {challenge.docker_lab && (
-          <div className="lab-info">
-            <div className="lab-info-header">
-              <span>🚀 Practical lab available: <code>{challenge.docker_lab}</code></span>
-              {challenge.docker_lab === "sqli-lab" && (
-                <a
-                  href="http://localhost:5001/lab/sqli-login"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="lab-link-btn"
-                >
-                  Open Lab (Port 5001) ↗
-                </a>
-              )}
-              {challenge.docker_lab === "xss-lab" && (
-                <a
-                  href="http://localhost:5002/lab/xss-search"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="lab-link-btn"
-                >
-                  Open Lab (Port 5002) ↗
-                </a>
-              )}
-            </div>
-            <p className="lab-setup-note">
-              Setup: run <code>docker compose up --build</code> in <code>docker/</code> directory.
-            </p>
-          </div>
-        )}
-
-        <div className="flag-format-box">
-          Flag format: <code>{challenge.flag_format}</code>
-        </div>
-
-        <form className="flag-form" onSubmit={handleSubmitFlag}>
-          <input
-            placeholder={challenge.flag_format}
-            value={flag}
-            onChange={(e) => setFlag(e.target.value)}
-            disabled={challenge.solved}
-          />
-          <button type="submit" disabled={challenge.solved}>
-            {challenge.solved ? "Solved" : "Submit Flag"}
-          </button>
-        </form>
-        {submitResult && (
-          <div className={submitResult.correct ? "result success" : "result failure"}>
-            {submitResult.message}
-            {submitResult.points_awarded > 0 && ` (+${submitResult.points_awarded} pts)`}
-          </div>
-        )}
+    <div className="page challenge-detail-page">
+      {/* Breadcrumb Navigation */}
+      <div className="challenge-breadcrumb">
+        <Link to="/challenges">← Back to Challenges</Link>
+        <span className="crumb-sep">/</span>
+        <span className="crumb-cat">{challenge.category}</span>
+        <span className="crumb-sep">/</span>
+        <span className="crumb-current">{challenge.title}</span>
       </div>
 
-      <div className="hint-panel">
-        <h2>AI Hint Assistant</h2>
-        <p className="hint-subtitle">Ask a question — the AI gives progressive hints, never the answer.</p>
-        <div className="chat-window">
-          {messages.length === 0 && (
-            <p className="chat-empty">Ask something like "Why didn't my payload work?"</p>
-          )}
-          {messages.map((m, i) => (
-            <div key={i} className={`chat-bubble ${m.role}`}>
-              {m.role === "ai" && m.source && (
-                <span className="chat-source">{m.source === "ollama" ? "AI" : "Guide"}</span>
-              )}
-              {m.text}
+      <div className="challenge-detail-grid">
+        {/* Main Dossier Column */}
+        <div className="challenge-main-panel cyber-panel">
+          <div className="dossier-header">
+            <div className="dossier-tags">
+              <span className="category-tag">{challenge.category}</span>
+              <span className={`difficulty-badge diff-${challenge.difficulty}`}>
+                {challenge.difficulty}
+              </span>
+              <span className="points-pill">+{challenge.points} pts</span>
             </div>
-          ))}
+            {challenge.solved && (
+              <span className="solved-status-badge">
+                <span className="check-icon">✓</span> Target Solved
+              </span>
+            )}
+          </div>
+
+          <h1 className="challenge-title">{challenge.title}</h1>
+
+          {/* Mission Briefing Box */}
+          <div className="mission-briefing-box">
+            <div className="box-title-bar">
+              <span className="term-dot"></span>
+              <span>MISSION DOSSIER & DIRECTIVES</span>
+            </div>
+            <div className="briefing-content">
+              {challenge.description.split(/(https?:\/\/[^\s)]+)/g).map((part, i) =>
+                part.match(/^https?:\/\//) ? (
+                  <a
+                    key={i}
+                    href={part}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="challenge-link"
+                  >
+                    {part} ↗
+                  </a>
+                ) : (
+                  part
+                )
+              )}
+            </div>
+          </div>
+
+          {/* Download Artifact */}
+          {challenge.download_file && (
+            <div className="artifact-download-card">
+              <div className="artifact-info">
+                <span className="artifact-icon">📦</span>
+                <div>
+                  <strong>Challenge Artifact:</strong>
+                  <span className="artifact-name">{challenge.download_file}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="download-btn"
+                onClick={() => handleDownload(challenge.download_file)}
+                disabled={downloading}
+              >
+                {downloading ? "Decrypting File..." : `⬇ Download Artifact`}
+              </button>
+            </div>
+          )}
+
+          {/* Docker Containerized Lab Info */}
+          {challenge.docker_lab && (
+            <div className="lab-info-card">
+              <div className="lab-info-header">
+                <div className="lab-title">
+                  <span className="lab-badge-pulse"></span>
+                  <strong>Live Target Environment: <code>{challenge.docker_lab}</code></strong>
+                </div>
+                {challenge.docker_lab === "sqli-lab" && (
+                  <a
+                    href="http://localhost:5001/lab/sqli-login"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="lab-launch-btn"
+                  >
+                    Open Target (Port 5001) ↗
+                  </a>
+                )}
+                {challenge.docker_lab === "xss-lab" && (
+                  <a
+                    href="http://localhost:5002/lab/xss-search"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="lab-launch-btn"
+                  >
+                    Open Target (Port 5002) ↗
+                  </a>
+                )}
+              </div>
+              <div className="lab-setup-instructions">
+                <span>Deploy local container:</span>
+                <code>cd docker && docker compose up --build</code>
+              </div>
+            </div>
+          )}
+
+          {/* Flag Submission Terminal Box */}
+          <div className="flag-submission-section">
+            <div className="flag-format-header">
+              <span>Accepted Flag Format:</span>
+              <code onClick={handleCopyFormat} title="Click to copy">
+                {challenge.flag_format}
+              </code>
+              <button
+                type="button"
+                className="copy-format-btn"
+                onClick={handleCopyFormat}
+              >
+                {copiedFormat ? "Copied! ✓" : "Copy Format"}
+              </button>
+            </div>
+
+            <form className="flag-form" onSubmit={handleSubmitFlag}>
+              <div className="flag-input-wrap">
+                <span className="flag-icon">🚩</span>
+                <input
+                  type="text"
+                  placeholder={challenge.flag_format || "AVST{...}"}
+                  value={flag}
+                  onChange={(e) => setFlag(e.target.value)}
+                  disabled={challenge.solved || submitting}
+                  className="flag-input"
+                />
+              </div>
+              <button
+                type="submit"
+                className={`flag-submit-btn ${challenge.solved ? "solved" : ""}`}
+                disabled={challenge.solved || submitting}
+              >
+                {challenge.solved
+                  ? "Objective Solved ✓"
+                  : submitting
+                  ? "Verifying..."
+                  : "Submit Flag ➔"}
+              </button>
+            </form>
+
+            {submitResult && (
+              <div
+                className={`submission-result-banner ${
+                  submitResult.correct ? "success-banner" : "failure-banner"
+                }`}
+              >
+                <span className="result-icon">
+                  {submitResult.correct ? "🎉" : "❌"}
+                </span>
+                <div className="result-text">
+                  <strong>{submitResult.message}</strong>
+                  {submitResult.points_awarded > 0 && (
+                    <span className="awarded-pill">
+                      +{submitResult.points_awarded} Points Added!
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <form className="chat-input" onSubmit={handleAskHint}>
-          <input
-            placeholder="Ask the AI assistant..."
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            disabled={asking}
-          />
-          <button type="submit" disabled={asking}>
-            {asking ? "..." : "Ask"}
-          </button>
-        </form>
+
+        {/* AI Hint Operations Center */}
+        <div className="hint-panel cyber-panel">
+          <div className="hint-panel-header">
+            <div className="hint-avatar-icon">🤖</div>
+            <div>
+              <h2>Tactical AI Advisor</h2>
+              <p className="hint-subtitle">
+                Level {hintLevel} Clearance — Progressive nudges without spoiling answers.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick suggestions */}
+          <div className="quick-prompts-container">
+            <span className="quick-prompt-label">Quick Directives:</span>
+            <div className="quick-prompt-chips">
+              {QUICK_HINTS.map((hint, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="quick-chip"
+                  onClick={() => sendHintQuestion(hint)}
+                  disabled={asking}
+                >
+                  {hint}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Chat transcript */}
+          <div className="chat-window">
+            {messages.length === 0 && (
+              <div className="chat-welcome-state">
+                <span className="chat-icon-huge">📡</span>
+                <p>
+                  Encountering resistance? Ask the AI advisor for conceptual
+                  clarification, payload suggestions, or diagnostic advice.
+                </p>
+              </div>
+            )}
+
+            {messages.map((m, i) => (
+              <div key={i} className={`chat-bubble ${m.role}`}>
+                {m.role === "ai" && (
+                  <div className="chat-source-tag">
+                    <span className="source-dot"></span>
+                    <span>
+                      {m.source === "ollama" ? "OLLAMA LLM ADVISOR" : "TACTICAL ADVISOR"}
+                      {m.level ? ` • LEVEL ${m.level}` : ""}
+                    </span>
+                  </div>
+                )}
+                <div className="chat-bubble-content">{m.text}</div>
+              </div>
+            ))}
+
+            {asking && (
+              <div className="chat-bubble ai typing">
+                <div className="chat-source-tag">
+                  <span className="source-dot pulse"></span>
+                  <span>ANALYZING QUERY...</span>
+                </div>
+                <div className="typing-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Chat input */}
+          <form
+            className="chat-input-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendHintQuestion(question);
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Ask for guidance (e.g., 'What is causing my SQL query to fail?')..."
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              disabled={asking}
+            />
+            <button type="submit" disabled={asking || !question.trim()}>
+              {asking ? "..." : "Send"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

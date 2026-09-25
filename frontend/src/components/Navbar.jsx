@@ -3,10 +3,10 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const LINKS = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/challenges", label: "Challenges" },
-  { to: "/cve", label: "CVE Learning" },
-  { to: "/leaderboard", label: "Leaderboard" },
+  { to: "/dashboard", label: "Dashboard", icon: "⌘" },
+  { to: "/challenges", label: "Challenges", icon: "⚡" },
+  { to: "/cve", label: "CVE Intel", icon: "🛡️" },
+  { to: "/leaderboard", label: "Leaderboard", icon: "🏆" },
 ];
 
 export default function Navbar() {
@@ -19,8 +19,11 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-brand">
         <NavLink to="/dashboard">
-          <span className="brand-mark">AVST</span>
-          <span className="brand-sub">Lite</span>
+          <div className="brand-logo">
+            <span className="brand-glyph">◆</span>
+            <span className="brand-mark">AVST</span>
+            <span className="brand-sub">Lite</span>
+          </div>
         </NavLink>
       </div>
       <div className="navbar-links">
@@ -30,13 +33,19 @@ export default function Navbar() {
             to={l.to}
             className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
           >
-            {l.label}
+            <span className="nav-link-icon">{l.icon}</span>
+            <span>{l.label}</span>
           </NavLink>
         ))}
       </div>
       <div className="navbar-user">
-        <span className="avatar">{user.name?.[0]?.toUpperCase() || "?"}</span>
-        <span className="user-name">{user.name}</span>
+        <div className="avatar-ring">
+          <span className="avatar">{user.name?.[0]?.toUpperCase() || "?"}</span>
+        </div>
+        <div className="user-info">
+          <span className="user-name">{user.name}</span>
+          <span className="user-role">Trainee</span>
+        </div>
         <button
           className="logout-btn"
           onClick={() => {
@@ -44,7 +53,8 @@ export default function Navbar() {
             navigate("/login");
           }}
         >
-          Logout
+          <span className="logout-icon">⏻</span>
+          <span>Logout</span>
         </button>
       </div>
     </nav>
