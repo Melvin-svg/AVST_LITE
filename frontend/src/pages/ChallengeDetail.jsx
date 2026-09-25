@@ -23,6 +23,8 @@ export default function ChallengeDetail() {
   const [asking, setAsking] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [copiedFormat, setCopiedFormat] = useState(false);
+  const [copiedDockerCmd, setCopiedDockerCmd] = useState(false);
+  const [labStatus, setLabStatus] = useState("checking"); // 'online', 'offline', 'checking'
 
   const chatEndRef = useRef(null);
 
@@ -33,6 +35,24 @@ export default function ChallengeDetail() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, asking]);
+
+  const checkLabStatus = () => {
+    if (!challenge?.docker_lab) return;
+    const port = challenge.docker_lab === "sqli-lab" ? 5001 : challenge.docker_lab === "xss-lab" ? 5002 : null;
+    if (!port) return;
+
+    setLabStatus("checking");
+    const checkUrl = `http://localhost:${port}/`;
+    fetch(checkUrl, { mode: "no-cors" })
+      .then(() => setLabStatus("online"))
+      .catch(() => setLabStatus("offline"));
+  };
+
+  useEffect(() => {
+    if (challenge?.docker_lab) {
+      checkLabStatus();
+    }
+  }, [challenge]);
 
   async function handleSubmitFlag(e) {
     e.preventDefault();
@@ -91,6 +111,12 @@ export default function ChallengeDetail() {
     }
   };
 
+  const handleCopyDockerCmd = () => {
+    navigator.clipboard.writeText("cd docker && docker compose up -d");
+    setCopiedDockerCmd(true);
+    setTimeout(() => setCopiedDockerCmd(false), 2000);
+  };
+
   if (!challenge) {
     return (
       <div className="page challenge-detail-loading">
@@ -99,6 +125,13 @@ export default function ChallengeDetail() {
       </div>
     );
   }
+
+  const labUrl =
+    challenge.docker_lab === "sqli-lab"
+      ? "http://localhost:5001/lab/sqli-login"
+      : challenge.docker_lab === "xss-lab"
+      ? "http://localhost:5002/lab/xss-search"
+      : null;
 
   return (
     <div className="page challenge-detail-page">
@@ -182,33 +215,73 @@ export default function ChallengeDetail() {
             <div className="lab-info-card">
               <div className="lab-info-header">
                 <div className="lab-title">
-                  <span className="lab-badge-pulse"></span>
-                  <strong>Live Target Environment: <code>{challenge.docker_lab}</code></strong>
+                  <span className={`lab-badge-pulse ${labStatus === "online" ? "online" : labStatus === "offline" ? "offline" : ""}`}></span>
+                  <strong>
+                    Live Target Environment: <code>{challenge.docker_lab}</code>
+                  </strong>
+                  {labStatus === "online" && (
+                    <span className="lab-status-online-pill">🟢 Online & Active</span>
+                  )}
+                  {labStatus === "offline" && (
+                    <span className="lab-status-offline-pill">🔴 Container Offline</span>
+                  )}
                 </div>
-                {challenge.docker_lab === "sqli-lab" && (
-                  <a
-                    href="http://localhost:5001/lab/sqli-login"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="lab-launch-btn"
+
+                <div className="lab-actions">
+                  <button
+                    type="button"
+                    className="lab-check-btn"
+                    onClick={checkLabStatus}
+                    title="Refresh connection status"
                   >
-                    Open Target (Port 5001) ↗
-                  </a>
-                )}
-                {challenge.docker_lab === "xss-lab" && (
-                  <a
-                    href="http://localhost:5002/lab/xss-search"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="lab-launch-btn"
-                  >
-                    Open Target (Port 5002) ↗
-                  </a>
-                )}
+                    🔄
+                  </button>
+
+                  {labUrl && (
+                    <a
+                      href={labUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="lab-launch-btn"
+                    >
+                      Open Target ({challenge.docker_lab === "sqli-lab" ? "Port 5001" : "Port 5002"}) ↗
+                    </a>
+                  )}
+                </div>
               </div>
-              <div className="lab-setup-instructions">
-                <span>Deploy local container:</span>
-                <code>cd docker && docker compose up --build</code>
+
+              {labStatus === "offline" && (
+                <div className="lab-offline-alert">
+                  <span>⚠️ Target container is not reachable. Launch it with:</span>
+                  <div className="cmd-copy-wrap">
+                    <code>cd docker && docker compose up -d</code>
+                    <button type="button" onClick={handleCopyDockerCmd} className="copy-cmd-btn">
+                      {copiedDockerCmd ? "Copied! ✓" : "Copy Command"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {labStatus === "online" && (
+                <div className="lab-online-tip">
+                  ✓ Container is running. Click <strong>Open Target ↗</strong> to view the interactive vulnerable application in a new tab.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Conceptual / Analytical Challenge Directive Info */}
+          {!challenge.docker_lab && !challenge.download_file && (
+            <div className="analytical-challenge-card">
+              <div className="analytical-card-header">
+                <span className="analytical-icon">🧠</span>
+                <div>
+                  <strong>Analytical & Conceptual Scenario</strong>
+                  <p>
+                    This mission does not require an external host. Study the payload or tokens
+                    in the dossier above, or engage the Tactical AI Advisor on the right to deduce the flag.
+                  </p>
+                </div>
               </div>
             </div>
           )}
