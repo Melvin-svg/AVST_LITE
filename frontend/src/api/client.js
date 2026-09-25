@@ -27,7 +27,17 @@ export const api = {
     request(`/api/challenges/${id}/submit`, { method: "POST", body: { flag }, token }),
   getHint: (token, id, question, hint_level) =>
     request(`/api/hints/${id}`, { method: "POST", body: { question, hint_level }, token }),
-  cves: (token) => request("/api/cve", { token }),
+  cves: (token, params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") {
+        query.append(k, v);
+      }
+    });
+    const qs = query.toString();
+    return request(`/api/cve${qs ? `?${qs}` : ""}`, { token });
+  },
+  cveStats: (token) => request("/api/cve/stats", { token }),
   leaderboard: (token) => request("/api/leaderboard", { token }),
   async downloadFile(token, id, filename) {
     const res = await fetch(`${API_BASE}/api/challenges/${id}/download`, {

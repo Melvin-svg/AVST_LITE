@@ -81,3 +81,23 @@ class CVEOut(BaseModel):
     description: str
     year: int
     related_category: str
+    vendor: Optional[str] = None
+    product: Optional[str] = None
+    date_added: Optional[str] = None
+    severity: Optional[str] = "High"
+    ransomware_use: Optional[str] = None
+    cwes: list[str] = []
+    required_action: Optional[str] = None
+    vendor_advisory_url: Optional[str] = None
+    nvd_url: Optional[str] = None
+    is_realtime: bool = True
+
+
+class CVEStats(BaseModel):
+    total_tracked: int
+    count_2026: int
+    count_2025: int
+    ransomware_count: int
+    last_synced: str
+    source: str
+
