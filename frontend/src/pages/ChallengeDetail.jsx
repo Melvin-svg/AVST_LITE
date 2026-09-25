@@ -73,7 +73,17 @@ export default function ChallengeDetail() {
         </div>
         <h1>{challenge.title}</h1>
         <p className="points">{challenge.points} points</p>
-        <p className="description">{challenge.description}</p>
+        <p className="description">
+          {challenge.description.split(/(https?:\/\/[^\s)]+)/g).map((part, i) =>
+            part.match(/^https?:\/\//) ? (
+              <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="challenge-link">
+                {part}
+              </a>
+            ) : (
+              part
+            )
+          )}
+        </p>
         {challenge.download_file && (
           <button
             type="button"
@@ -86,8 +96,32 @@ export default function ChallengeDetail() {
         )}
         {challenge.docker_lab && (
           <div className="lab-info">
-            Practical lab available: <code>{challenge.docker_lab}</code> (see{" "}
-            <code>docker/{challenge.docker_lab}</code> in the project for setup).
+            <div className="lab-info-header">
+              <span>🚀 Practical lab available: <code>{challenge.docker_lab}</code></span>
+              {challenge.docker_lab === "sqli-lab" && (
+                <a
+                  href="http://localhost:5001/lab/sqli-login"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="lab-link-btn"
+                >
+                  Open Lab (Port 5001) ↗
+                </a>
+              )}
+              {challenge.docker_lab === "xss-lab" && (
+                <a
+                  href="http://localhost:5002/lab/xss-search"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="lab-link-btn"
+                >
+                  Open Lab (Port 5002) ↗
+                </a>
+              )}
+            </div>
+            <p className="lab-setup-note">
+              Setup: run <code>docker compose up --build</code> in <code>docker/</code> directory.
+            </p>
           </div>
         )}
 
